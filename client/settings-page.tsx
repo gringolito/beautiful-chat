@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { Animated, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import type { PluginSurfaceProps } from "@getpaseo/plugin/client";
 import { TextInput } from "@getpaseo/plugin/client/react-native";
 import { hostFontEscape } from "./components/host-font-escape";
-import { radius, buildThemeTokens, type ExtendedThemeTokens } from "./components/theme-tokens";
+import { radius, useThemeTokens, type ExtendedThemeTokens } from "./components/theme-tokens";
 import {
   ACCENT_PRESETS,
   resetEnhancerPreferences,
@@ -215,10 +215,7 @@ function ChoiceRow<T extends string>({
 /** Settings content mounted by Paseo under the selected host's Plugin settings. */
 export function BeautifulChatSettingsPage({ theme }: PluginSurfaceProps) {
   const preferences = useEnhancerPreferences();
-  const tokens = useMemo(
-    () => buildThemeTokens(theme.colors, preferences),
-    [preferences, theme.colors],
-  );
+  const tokens = useThemeTokens(theme.colors, preferences);
 
   return (
     <View {...hostFontEscape} style={[styles.container, { backgroundColor: tokens.surface0 }]}>
@@ -308,7 +305,7 @@ export function BeautifulChatSettingsPage({ theme }: PluginSurfaceProps) {
 
         <ChoiceRow<CodeFontPreference>
           title="Code font"
-          description="The face for code blocks. Paseo uses the Code font from Paseo's Settings → Appearance → Fonts. Iosevka is embedded, with or without programming ligatures. Custom takes any installed font family."
+          description="The face for code blocks, diffs, inline code, terminal output, and every other monospace surface. Paseo uses the Code font from Paseo's Settings → Appearance → Fonts. Code blocks always follow Paseo's Code size. With Iosevka ligatures, only code blocks and diffs are shaped. Custom takes any installed font family."
           value={preferences.codeFont}
           options={[
             { value: "host", label: "Paseo" },

@@ -1,6 +1,8 @@
+import { useMemo } from "react";
 import { Platform } from "react-native";
 import type { PluginTheme } from "@getpaseo/plugin";
 import { DEFAULT_PREFERENCES, type EnhancerPreferences, ACCENT_PRESETS } from "../preferences";
+import { DEFAULT_HOST_CODE_FONT_SIZE, useHostCodeFontSize } from "../host-appearance";
 
 export type PluginSurfaceColors = PluginTheme["colors"];
 
@@ -22,10 +24,10 @@ export const radius = { card: 12, block: 8, chip: 5 } as const;
 export const fontMono = "OMP Iosevka";
 
 /**
- * The ligature cut of Iosevka, one of the code font choices. Code blocks use
- * the code font, and so do edit and approval diffs, which render through the
- * same block. Terminal output and paths stay on `fontMono`: a shaped `->` or
- * `=>` stops matching the bytes it stands for, which is wrong for a log line.
+ * The ligature cut of Iosevka. When it is the chosen code font, only code
+ * blocks and the diffs drawn through them use it; terminal output, inline code
+ * and paths keep `fontMono`, because a shaped `->` or `=>` stops matching the
+ * bytes it stands for, which is wrong for a log line.
  */
 export const fontCode = "OMP Iosevka Code";
 export const fontUi = "OMP Inter";
@@ -42,21 +44,34 @@ const hostMonoFont =
     ? "var(--fontFamily-mono, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace)"
     : Platform.select({ ios: "Menlo", default: "monospace" });
 
-function resolveCodeFont(preferences: EnhancerPreferences): string {
+/**
+ * The chosen code font as two families: `code` for code blocks and diffs,
+ * `mono` for every other monospace surface. They differ only for the Iosevka
+ * ligature cut.
+ */
+export function resolveCodeFonts(preferences: EnhancerPreferences): {
+  code: string;
+  mono: string;
+} {
   switch (preferences.codeFont) {
     case "code":
-      return fontCode;
+      return { code: fontCode, mono: fontMono };
     case "plain":
-      return fontMono;
+      return { code: fontMono, mono: fontMono };
     case "custom": {
       // The same characters Paseo strips from its own font fields: anything
       // that could close the declaration and start another.
       const custom = preferences.customCodeFont.replace(/[<>{}();\r\n]/g, "").trim();
-      if (custom.length === 0) return hostMonoFont;
-      return Platform.OS === "web" ? `${custom}, ${hostMonoFont}` : custom;
+      const family =
+        custom.length === 0
+          ? hostMonoFont
+          : Platform.OS === "web"
+            ? `${custom}, ${hostMonoFont}`
+            : custom;
+      return { code: family, mono: family };
     }
     case "host":
-      return hostMonoFont;
+      return { code: hostMonoFont, mono: hostMonoFont };
   }
 }
 
@@ -65,6 +80,8 @@ export interface ExtendedThemeTokens {
   fontMono: string;
   fontCode: string;
   fontUi: string;
+  /** Paseo's Code size, used by code blocks. */
+  codeFontSize: number;
 
   // Surfaces
   surface0: string;
@@ -197,7 +214,9 @@ function isDarkSurface(color: string): boolean {
 export function buildThemeTokens(
   colors: PluginSurfaceColors,
   preferences: EnhancerPreferences = DEFAULT_PREFERENCES,
+  codeFontSize: number = DEFAULT_HOST_CODE_FONT_SIZE,
 ): ExtendedThemeTokens {
+  const codeFonts = resolveCodeFonts(preferences);
   const isDark = isDarkSurface(colors.surface0);
   const fg = colors.foreground;
   const accent = ACCENT_PRESETS[preferences.accent] ?? colors.accent;
@@ -209,9 +228,10 @@ export function buildThemeTokens(
 
   return {
     isDark,
-    fontMono,
-    fontCode: resolveCodeFont(preferences),
+    fontMono: codeFonts.mono,
+    fontCode: codeFonts.code,
     fontUi: preferences.uiFont === "system" ? "System" : fontUi,
+    codeFontSize,
 
     surface0: colors.surface0,
     surface1: withAlpha(fg, isDark ? 0.03 : 0.025),
@@ -279,4 +299,16 @@ export function buildThemeTokens(
       hunk: withAlpha(colors.foregroundMuted, 0.7),
     },
   };
+}
+
+/** Tokens for a surface, kept in step with the host's Code size. */
+export function useThemeTokens(
+  colors: PluginSurfaceColors,
+  preferences: EnhancerPreferences,
+): ExtendedThemeTokens {
+  const codeFontSize = useHostCodeFontSize();
+  return useMemo(
+    () => buildThemeTokens(colors, preferences, codeFontSize),
+    [colors, preferences, codeFontSize],
+  );
 }

@@ -4,7 +4,7 @@ import { useAgent, usePaseo, useRpc } from "@getpaseo/plugin/client";
 import { useRevealedText } from "@getpaseo/plugin/client/react-native";
 import type { PluginTimelineItemProps } from "@getpaseo/plugin/client";
 import type { PluginTheme } from "@getpaseo/plugin";
-import { buildThemeTokens } from "./components/theme-tokens";
+import { useThemeTokens } from "./components/theme-tokens";
 import { ToolCallout } from "./components/tool-callouts";
 import { ReasoningTrace } from "./components/reasoning-trace";
 import { TaskList } from "./components/task-list";
@@ -394,10 +394,7 @@ export function LiveToolCallRenderer({
   const revealPath = useRpc(revealPathRpc);
   const cwd = useAgent(agentId, (agent) => agent.cwd);
   const preferences = useEnhancerPreferences();
-  const tokens = useMemo(
-    () => buildThemeTokens(theme.colors, preferences),
-    [theme.colors, preferences],
-  );
+  const tokens = useThemeTokens(theme.colors, preferences);
   useSelectionActions(tokens, preferences.selectionActions);
   usePointerGlow(preferences.pointerGlow);
   const data = item.data;
@@ -640,10 +637,7 @@ export function LiveReasoningRenderer({
   theme,
 }: PluginTimelineItemProps<LiveReasoningPayload>) {
   const preferences = useEnhancerPreferences();
-  const tokens = useMemo(
-    () => buildThemeTokens(theme.colors, preferences),
-    [theme.colors, preferences],
-  );
+  const tokens = useThemeTokens(theme.colors, preferences);
   useSelectionActions(tokens, preferences.selectionActions);
   usePointerGlow(preferences.pointerGlow);
   const data = item.data;
@@ -706,10 +700,7 @@ export function LiveReasoningRenderer({
 
 export function LiveTodoRenderer({ item, theme }: PluginTimelineItemProps<LiveTodoPayload>) {
   const preferences = useEnhancerPreferences();
-  const tokens = useMemo(
-    () => buildThemeTokens(theme.colors, preferences),
-    [theme.colors, preferences],
-  );
+  const tokens = useThemeTokens(theme.colors, preferences);
   useSelectionActions(tokens, preferences.selectionActions);
   usePointerGlow(preferences.pointerGlow);
   const data = item.data;
@@ -759,10 +750,7 @@ export function LiveAssistantRenderer({
   timestamp,
 }: PluginTimelineItemProps<LiveAssistantPayload>) {
   const preferences = useEnhancerPreferences();
-  const tokens = useMemo(
-    () => buildThemeTokens(theme.colors, preferences),
-    [theme.colors, preferences],
-  );
+  const tokens = useThemeTokens(theme.colors, preferences);
   useSelectionActions(tokens, preferences.selectionActions);
   usePointerGlow(preferences.pointerGlow);
 
@@ -805,10 +793,7 @@ export function LiveAssistantRenderer({
  */
 export function LiveNoticeRenderer({ item, theme }: PluginTimelineItemProps<LiveNoticePayload>) {
   const preferences = useEnhancerPreferences();
-  const tokens = useMemo(
-    () => buildThemeTokens(theme.colors, preferences),
-    [theme.colors, preferences],
-  );
+  const tokens = useThemeTokens(theme.colors, preferences);
   useSelectionActions(tokens, preferences.selectionActions);
   usePointerGlow(preferences.pointerGlow);
   const data = item.data;
@@ -853,10 +838,7 @@ export function LiveUserMessageRenderer({
   timestamp,
 }: PluginTimelineItemProps<LiveUserMessagePayload>) {
   const preferences = useEnhancerPreferences();
-  const tokens = useMemo(
-    () => buildThemeTokens(theme.colors, preferences),
-    [theme.colors, preferences],
-  );
+  const tokens = useThemeTokens(theme.colors, preferences);
   useSelectionActions(tokens, preferences.selectionActions);
   usePointerGlow(preferences.pointerGlow);
   const paseo = usePaseo();
