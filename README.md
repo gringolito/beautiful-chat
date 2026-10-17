@@ -153,7 +153,7 @@ Devicon brand marks, and the file-manager link.
 | Enhanced prompt bubble | Off hands prompts back to Paseo, whose bubble shows pasted images. |
 | Assistant markdown     | Off hands replies back to Paseo's own markdown renderer.           |
 
-Code blocks also follow Paseo's **Code size** (Settings → Appearance → Fonts).
+All monospace text also follows Paseo's **Code size** (Settings → Appearance → Fonts).
 
 ---
 

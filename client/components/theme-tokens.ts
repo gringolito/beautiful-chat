@@ -80,8 +80,10 @@ export interface ExtendedThemeTokens {
   fontMono: string;
   fontCode: string;
   fontUi: string;
-  /** Paseo's Code size, used by code blocks. */
+  /** Paseo's Code size, used by every monospace surface. */
   codeFontSize: number;
+  /** The 1.5 leading Paseo gives its own code, at `codeFontSize`. */
+  codeLineHeight: number;
 
   // Surfaces
   surface0: string;
@@ -232,6 +234,7 @@ export function buildThemeTokens(
     fontCode: codeFonts.code,
     fontUi: preferences.uiFont === "system" ? "System" : fontUi,
     codeFontSize,
+    codeLineHeight: Math.round(codeFontSize * 1.5),
 
     surface0: colors.surface0,
     surface1: withAlpha(fg, isDark ? 0.03 : 0.025),

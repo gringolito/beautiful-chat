@@ -203,7 +203,7 @@ export function ToolCallout({
           ...tokens.boxShadow,
         },
         terminalPrompt: {
-          fontSize: 12,
+          fontSize: tokens.codeFontSize,
           fontFamily: tokens.fontMono,
           color: tokens.foreground,
         },
@@ -224,14 +224,14 @@ export function ToolCallout({
         },
         evalOutputText: {
           fontFamily: tokens.fontMono,
-          fontSize: 11.5,
-          lineHeight: 17,
+          fontSize: tokens.codeFontSize,
+          lineHeight: tokens.codeLineHeight,
           color: tokens.foregroundMuted,
         },
         terminalOutput: {
           fontFamily: tokens.fontMono,
-          fontSize: 11.5,
-          lineHeight: 17,
+          fontSize: tokens.codeFontSize,
+          lineHeight: tokens.codeLineHeight,
           color: tokens.foregroundMuted,
         },
         silentCommandText: {
@@ -601,7 +601,7 @@ export function ToolCallout({
                       <Text
                         selectable
                         style={{
-                          fontSize: 11,
+                          fontSize: tokens.codeFontSize,
                           color: tokens.foregroundSubtle,
                           fontFamily: tokens.fontMono,
                         }}

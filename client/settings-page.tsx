@@ -305,7 +305,7 @@ export function BeautifulChatSettingsPage({ theme }: PluginSurfaceProps) {
 
         <ChoiceRow<CodeFontPreference>
           title="Code font"
-          description="The face for code blocks, diffs, inline code, terminal output, and every other monospace surface. Paseo uses the Code font from Paseo's Settings → Appearance → Fonts. Code blocks always follow Paseo's Code size. With Iosevka ligatures, only code blocks and diffs are shaped. Custom takes any installed font family."
+          description="The face for code blocks, diffs, inline code, terminal output, and every other monospace surface. Paseo uses the Code font from Paseo's Settings → Appearance → Fonts. Monospace text always follows Paseo's Code size. With Iosevka ligatures, only code blocks and diffs are shaped. Custom takes any installed font family."
           value={preferences.codeFont}
           options={[
             { value: "host", label: "Paseo" },
