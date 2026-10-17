@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import type { PluginTheme } from "@getpaseo/plugin";
 import { DEFAULT_PREFERENCES, type EnhancerPreferences, ACCENT_PRESETS } from "../preferences";
 
@@ -12,21 +13,52 @@ export type PluginSurfaceColors = PluginTheme["colors"];
 export const radius = { card: 12, block: 8, chip: 5 } as const;
 
 /**
- * One family name per stack, never a comma-separated CSS list. React Native's
- * `fontFamily` takes a single family; a list is not parsed and the whole
- * declaration is dropped, which silently leaves every surface on the host
- * default. Fallbacks live in the `@font-face` `src` chain instead, so these
- * names always resolve to something.
+ * One family name per stack, never a comma-separated CSS list. On iOS and
+ * Android `fontFamily` names a single family, and a list falls back to the
+ * system face.
+ * Fallbacks live in the `@font-face` `src` chain instead, so these names
+ * always resolve to something.
  */
 export const fontMono = "OMP Iosevka";
 
 /**
- * The ligature cut of Iosevka, used only inside code blocks. Terminal output,
- * diffs and paths stay on `fontMono`: a shaped `->` or `=>` stops matching the
- * bytes it stands for, which is wrong for a log line or a patch.
+ * The ligature cut of Iosevka, one of the code font choices. Code blocks use
+ * the code font, and so do edit and approval diffs, which render through the
+ * same block. Terminal output and paths stay on `fontMono`: a shaped `->` or
+ * `=>` stops matching the bytes it stands for, which is wrong for a log line.
  */
 export const fontCode = "OMP Iosevka Code";
 export const fontUi = "OMP Inter";
+
+/**
+ * Paseo's own monospace font: Settings → Appearance → Fonts → Code font. The host
+ * keeps its Unistyles theme in CSS variables on web and desktop, so this
+ * tracks the setting live; the fallback is Paseo's default stack. React Native
+ * Web passes `fontFamily` through as raw CSS, which is what makes a `var()` and
+ * a list valid here. Native has neither, so it gets the platform monospace.
+ */
+const hostMonoFont =
+  Platform.OS === "web"
+    ? "var(--fontFamily-mono, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace)"
+    : Platform.select({ ios: "Menlo", default: "monospace" });
+
+function resolveCodeFont(preferences: EnhancerPreferences): string {
+  switch (preferences.codeFont) {
+    case "code":
+      return fontCode;
+    case "plain":
+      return fontMono;
+    case "custom": {
+      // The same characters Paseo strips from its own font fields: anything
+      // that could close the declaration and start another.
+      const custom = preferences.customCodeFont.replace(/[<>{}();\r\n]/g, "").trim();
+      if (custom.length === 0) return hostMonoFont;
+      return Platform.OS === "web" ? `${custom}, ${hostMonoFont}` : custom;
+    }
+    case "host":
+      return hostMonoFont;
+  }
+}
 
 export interface ExtendedThemeTokens {
   isDark: boolean;
@@ -178,7 +210,7 @@ export function buildThemeTokens(
   return {
     isDark,
     fontMono,
-    fontCode: preferences.codeFont === "plain" ? fontMono : fontCode,
+    fontCode: resolveCodeFont(preferences),
     fontUi: preferences.uiFont === "system" ? "System" : fontUi,
 
     surface0: colors.surface0,

@@ -607,7 +607,7 @@ export function SyntaxHighlightBlock({
         lineNumber: {
           width: 32,
           fontSize: 12,
-          fontFamily: tokens.fontMono,
+          fontFamily: tokens.fontCode,
           color: tokens.foregroundSubtle,
           textAlign: "right",
           paddingRight: 10,
