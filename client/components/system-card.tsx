@@ -28,7 +28,8 @@ const KIND_LOOK: Record<SystemEnvelopeKind, { glyph: string; label: string }> = 
 
 /**
  * Body longer than this opens closed: a job preview is pages of JSON. A
- * relayed message or an advisor note opens regardless; reading it is the point.
+ * relayed message opens regardless; reading it is the point. An advisor note
+ * always opens closed.
  */
 const COLLAPSE_LIMIT = 220;
 
@@ -56,8 +57,7 @@ export function SystemCard({ envelope, tokens }: SystemCardProps): React.ReactEl
   const look = KIND_LOOK[envelope.kind];
   const [expanded, setExpanded] = useState(
     envelope.kind === "message" ||
-      envelope.kind === "advisor" ||
-      envelope.body.length <= COLLAPSE_LIMIT,
+      (envelope.kind !== "advisor" && envelope.body.length <= COLLAPSE_LIMIT),
   );
   const accent = envelope.failed ? tokens.danger : tokens.foregroundSubtle;
   const kind = bodyKind(envelope);
