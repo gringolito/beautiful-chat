@@ -7,17 +7,20 @@ import { installShimmer } from "./client/components/shimmer";
 import { installPointerGlow } from "./client/components/glow";
 import { installHostNoticeStyle } from "./client/components/host-notice";
 import { installChatFind } from "./client/components/chat-find";
-import { installCleanChatStyle } from "./client/components/folded-row";
+import { installCleanChatStyle } from "./client/components/clean-chat-style";
 import { installCleanChatPills } from "./client/clean-chat";
 import { extractPromptImages } from "./client/prompt-images";
-import { getEnhancerPreferences } from "./client/preferences";
+import { getEnhancerPreferences, subscribeEnhancerPreferences } from "./client/preferences";
+import { isConversationEnvelope, parseSystemEnvelope } from "./client/system-envelope";
 import {
+  isConversationToolCall,
   LiveToolCallRenderer,
   LiveReasoningRenderer,
   LiveTodoRenderer,
   LiveUserMessageRenderer,
   LiveNoticeRenderer,
   LiveAssistantRenderer,
+  type LiveToolCallPayload,
 } from "./client/live-renderers";
 
 type JsonValue = boolean | null | number | string | JsonValue[] | { [key: string]: JsonValue };
@@ -26,67 +29,52 @@ function toJsonValue(value: unknown): JsonValue {
   return value as JsonValue;
 }
 
-export default function contribute(client: PluginClientContext) {
-  // Install the bundled faces before any surface paints.
-  const removeFonts = embedFonts();
-  const removeFrost = installFrostedGlass();
-  const removeShimmer = installShimmer();
-  const removeGlow = installPointerGlow();
-  // The host draws  rows itself; this only re-chromes them.
-  const removeNoticeStyle = installHostNoticeStyle();
-  // Paseo's Ctrl+F cannot reveal rows this plugin draws; this bar can.
-  const removeChatFind = installChatFind();
-  // Clean chat: the composer toggle, and the rule that hides host notices.
-  const removeCleanChatStyle = installCleanChatStyle();
-  const removeCleanChatPills = installCleanChatPills(client);
+/**
+ * What a transformer returns for an item clean chat hides. An empty result
+ * removes the row, so the host draws nothing and keeps no gap for it.
+ */
+const HIDDEN = { items: [] };
 
-  // Configuration lives in the host Settings area. The plugin has no showcase
-  // surface, panels, or Command Center item.
-  client.addSettingsScreen({
-    id: "chat-presentation",
-    title: "Chat presentation",
-    icon: "Blocks",
-    Component: BeautifulChatSettingsPage,
-  });
+/** Harness text clean chat hides: a reminder, a notice, a process line. */
+function isHiddenEnvelope(text: string): boolean {
+  const envelope = parseSystemEnvelope(text);
+  return envelope !== null && !isConversationEnvelope(envelope);
+}
 
-  // Live chat timeline interception: render real tool calls, reasoning, and todos with enhanced UI.
+function addTransformers(client: PluginClientContext): () => void {
   const removeToolTransformer = client.addTimelineTransformer({
     id: "omp-enhanced-tool-call",
     query: { itemType: "tool_call" },
     transform({ item, phase }) {
       if (item.type !== "tool_call") return undefined;
+      const data: LiveToolCallPayload = {
+        name: item.name,
+        status: item.status,
+        detail: toJsonValue(item.detail) as Record<string, unknown>,
+        ...(item.callId ? { callId: item.callId } : {}),
+        error: item.error ? String(item.error) : null,
+        phase,
+      };
+      // A running call stays so the reader can see what the agent is doing.
+      // It is projected again when it finishes, and hides then.
+      if (
+        getEnhancerPreferences().cleanChat &&
+        phase !== "streaming" &&
+        !isConversationToolCall(data)
+      ) {
+        return HIDDEN;
+      }
       return {
         items: [
           {
             type: "plugin" as const,
             kind: "omp-tool-call",
             version: 1,
-            data: {
-              name: item.name,
-              status: item.status,
-              detail: toJsonValue(item.detail),
-              ...(item.callId ? { callId: item.callId } : {}),
-              error: item.error ? String(item.error) : null,
-              phase,
-            },
+            data: toJsonValue(data),
           },
         ],
       };
     },
-  });
-
-  const removeToolRenderer = client.addTimelineRenderer({
-    kind: "omp-tool-call",
-    version: 1,
-    schema: z.object({
-      name: z.string(),
-      status: z.string(),
-      detail: z.record(z.string(), z.unknown()).optional(),
-      callId: z.string().optional(),
-      error: z.string().nullable().optional(),
-      phase: z.string().optional(),
-    }),
-    Component: LiveToolCallRenderer,
   });
 
   const removeReasoningTransformer = client.addTimelineTransformer({
@@ -94,6 +82,7 @@ export default function contribute(client: PluginClientContext) {
     query: { itemType: "reasoning" },
     transform({ item, phase }) {
       if (item.type !== "reasoning") return undefined;
+      if (getEnhancerPreferences().cleanChat) return HIDDEN;
       return {
         items: [
           {
@@ -110,21 +99,12 @@ export default function contribute(client: PluginClientContext) {
     },
   });
 
-  const removeReasoningRenderer = client.addTimelineRenderer({
-    kind: "omp-reasoning",
-    version: 1,
-    schema: z.object({
-      text: z.string(),
-      phase: z.string().optional(),
-    }),
-    Component: LiveReasoningRenderer,
-  });
-
   const removeTodoTransformer = client.addTimelineTransformer({
     id: "omp-enhanced-todo",
     query: { itemType: "todo" },
     transform({ item, phase }) {
       if (item.type !== "todo") return undefined;
+      if (getEnhancerPreferences().cleanChat) return HIDDEN;
       return {
         items: [
           {
@@ -141,21 +121,12 @@ export default function contribute(client: PluginClientContext) {
     },
   });
 
-  const removeTodoRenderer = client.addTimelineRenderer({
-    kind: "omp-todo",
-    version: 1,
-    schema: z.object({
-      items: z.array(z.record(z.string(), z.unknown())),
-      phase: z.string().optional(),
-    }),
-    Component: LiveTodoRenderer,
-  });
-
   const removeUserTransformer = client.addTimelineTransformer({
     id: "omp-enhanced-user-message",
     query: { itemType: "user_message" },
     transform({ item }) {
       if (item.type !== "user_message") return undefined;
+      if (getEnhancerPreferences().cleanChat && isHiddenEnvelope(item.text)) return HIDDEN;
       // The host strips images while mapping the stream item, so an enhanced
       // bubble would silently swallow a pasted screenshot. The preference lets
       // the reader trade the bubble for the host's image previews.
@@ -184,17 +155,6 @@ export default function contribute(client: PluginClientContext) {
     },
   });
 
-  const removeUserRenderer = client.addTimelineRenderer({
-    kind: "omp-user-message",
-    version: 1,
-    schema: z.object({
-      text: z.string(),
-      images: z.array(z.string()).optional(),
-      messageId: z.string().optional(),
-    }),
-    Component: LiveUserMessageRenderer,
-  });
-
   // The assistant's reply. The preference is read inside `transform` so a
   // change takes effect on the next message without a plugin reload, and a
   // reply the plugin should not own is left to the host.
@@ -203,6 +163,7 @@ export default function contribute(client: PluginClientContext) {
     query: { itemType: "assistant_message" },
     transform({ item }) {
       if (item.type !== "assistant_message") return undefined;
+      if (getEnhancerPreferences().cleanChat && isHiddenEnvelope(item.text)) return HIDDEN;
       if (!getEnhancerPreferences().assistantMarkdown) return undefined;
       if (!item.text.trim()) return undefined;
       return {
@@ -216,13 +177,6 @@ export default function contribute(client: PluginClientContext) {
         ],
       };
     },
-  });
-
-  const removeAssistantRenderer = client.addTimelineRenderer({
-    kind: "omp-assistant",
-    version: 1,
-    schema: z.object({ text: z.string() }),
-    Component: LiveAssistantRenderer,
   });
 
   // Only `error` is intercepted here. Paseo 0.8 accepts transformers for
@@ -251,6 +205,92 @@ export default function contribute(client: PluginClientContext) {
     },
   });
 
+  return () => {
+    removeToolTransformer();
+    removeReasoningTransformer();
+    removeTodoTransformer();
+    removeUserTransformer();
+    removeAssistantTransformer();
+    removeErrorTransformer();
+  };
+}
+
+export default function contribute(client: PluginClientContext) {
+  // Install the bundled faces before any surface paints.
+  const removeFonts = embedFonts();
+  const removeFrost = installFrostedGlass();
+  const removeShimmer = installShimmer();
+  const removeGlow = installPointerGlow();
+  // The host draws  rows itself; this only re-chromes them.
+  const removeNoticeStyle = installHostNoticeStyle();
+  // Paseo's Ctrl+F cannot reveal rows this plugin draws; this bar can.
+  const removeChatFind = installChatFind();
+  // Clean chat: the composer toggle, and the rule that hides host notices.
+  const removeCleanChatStyle = installCleanChatStyle();
+  const removeCleanChatPills = installCleanChatPills(client);
+
+  // Configuration lives in the host Settings area. The plugin has no showcase
+  // surface, panels, or Command Center item.
+  client.addSettingsScreen({
+    id: "chat-presentation",
+    title: "Chat presentation",
+    icon: "Blocks",
+    Component: BeautifulChatSettingsPage,
+  });
+
+  // Live chat timeline interception: render real tool calls, reasoning, and todos with enhanced UI.
+  const removeToolRenderer = client.addTimelineRenderer({
+    kind: "omp-tool-call",
+    version: 1,
+    schema: z.object({
+      name: z.string(),
+      status: z.string(),
+      detail: z.record(z.string(), z.unknown()).optional(),
+      callId: z.string().optional(),
+      error: z.string().nullable().optional(),
+      phase: z.string().optional(),
+    }),
+    Component: LiveToolCallRenderer,
+  });
+
+  const removeReasoningRenderer = client.addTimelineRenderer({
+    kind: "omp-reasoning",
+    version: 1,
+    schema: z.object({
+      text: z.string(),
+      phase: z.string().optional(),
+    }),
+    Component: LiveReasoningRenderer,
+  });
+
+  const removeTodoRenderer = client.addTimelineRenderer({
+    kind: "omp-todo",
+    version: 1,
+    schema: z.object({
+      items: z.array(z.record(z.string(), z.unknown())),
+      phase: z.string().optional(),
+    }),
+    Component: LiveTodoRenderer,
+  });
+
+  const removeUserRenderer = client.addTimelineRenderer({
+    kind: "omp-user-message",
+    version: 1,
+    schema: z.object({
+      text: z.string(),
+      images: z.array(z.string()).optional(),
+      messageId: z.string().optional(),
+    }),
+    Component: LiveUserMessageRenderer,
+  });
+
+  const removeAssistantRenderer = client.addTimelineRenderer({
+    kind: "omp-assistant",
+    version: 1,
+    schema: z.object({ text: z.string() }),
+    Component: LiveAssistantRenderer,
+  });
+
   const removeNoticeRenderer = client.addTimelineRenderer({
     kind: "omp-notice",
     version: 1,
@@ -262,7 +302,22 @@ export default function contribute(client: PluginClientContext) {
     Component: LiveNoticeRenderer,
   });
 
+  // The host caches each item's projection per transform function and builds
+  // a new function whenever a plugin's transformers change. Registering them
+  // again is therefore what makes rows already on screen follow clean chat.
+  let removeTransformers = addTransformers(client);
+  let cleanChat = getEnhancerPreferences().cleanChat;
+  const unsubscribeCleanChat = subscribeEnhancerPreferences(() => {
+    const next = getEnhancerPreferences().cleanChat;
+    if (next === cleanChat) return;
+    cleanChat = next;
+    removeTransformers();
+    removeTransformers = addTransformers(client);
+  });
+
   return () => {
+    unsubscribeCleanChat();
+    removeTransformers();
     removeFonts();
     removeFrost();
     removeShimmer();
@@ -271,17 +326,11 @@ export default function contribute(client: PluginClientContext) {
     removeChatFind();
     removeCleanChatStyle();
     removeCleanChatPills();
-    removeToolTransformer();
     removeToolRenderer();
-    removeReasoningTransformer();
     removeReasoningRenderer();
-    removeTodoTransformer();
     removeTodoRenderer();
-    removeUserTransformer();
     removeUserRenderer();
-    removeAssistantTransformer();
     removeAssistantRenderer();
-    removeErrorTransformer();
     removeNoticeRenderer();
   };
 }

@@ -24,7 +24,7 @@ import { BeautifulChatSettingsPage } from "../client/settings-page";
 import { buildHubData } from "../client/hub-details";
 import { NoticeCallout } from "../client/components/notice-callout";
 import { SystemCard } from "../client/components/system-card";
-import { AssistantFooter } from "../client/components/turn-footer";
+import { AssistantMessage } from "../client/components/assistant-message";
 import { MarkdownView } from "../client/components/markdown/markdown-view";
 import { parseSystemEnvelope } from "../client/system-envelope";
 import { installPointerGlow } from "../client/components/glow";
@@ -638,10 +638,9 @@ function Thread() {
         tokens={tokens}
       />
       <ApprovalCard request={approval} tokens={tokens} />
-      <View>
+      <AssistantMessage text={REPLY} at={new Date("2026-09-15T22:47:12Z")} tokens={tokens}>
         <MarkdownView text={REPLY} tokens={tokens} variant="document" />
-        <AssistantFooter text={REPLY} at={new Date("2026-09-15T22:47:12Z")} tokens={tokens} />
-      </View>
+      </AssistantMessage>
     </View>
   );
 }
@@ -662,6 +661,9 @@ const HERO_REPLY = [
   "```",
 ].join("\n");
 
+const PROGRESS_REPLY =
+  "The links are plain text because the renderer never hands them to the host's opener. I'll route them through `openLink` next.";
+
 /**
  * One screenful for the top of the README: a prompt, a tool call with a
  * highlighted file, a finished background job, and the reply that closes the
@@ -679,10 +681,9 @@ function Hero() {
       />
       <ToolCallout data={read} tokens={tokens} onRevealPath={() => {}} />
       {envelope ? <SystemCard envelope={envelope} tokens={tokens} /> : null}
-      <View>
+      <AssistantMessage text={HERO_REPLY} at={new Date("2026-09-15T22:47:12Z")} tokens={tokens}>
         <MarkdownView text={HERO_REPLY} tokens={tokens} variant="document" />
-        <AssistantFooter text={HERO_REPLY} at={new Date("2026-09-15T22:47:12Z")} tokens={tokens} />
-      </View>
+      </AssistantMessage>
     </View>
   );
 }
@@ -783,6 +784,16 @@ function Showcase() {
           tokens={tokens}
           usage={{ inputTokens: 90100, cachedInputTokens: 1600000, outputTokens: 4700 }}
         />
+      </Shot>
+      <Shot id="shot-reply">
+        <View style={{ gap: 12 }}>
+          <AssistantMessage text={PROGRESS_REPLY} at={new Date("2026-09-15T22:44:05Z")} tokens={tokens}>
+            <MarkdownView text={PROGRESS_REPLY} tokens={tokens} variant="document" />
+          </AssistantMessage>
+          <AssistantMessage text={HERO_REPLY} at={new Date("2026-09-15T22:47:12Z")} tokens={tokens}>
+            <MarkdownView text={HERO_REPLY} tokens={tokens} variant="document" />
+          </AssistantMessage>
+        </View>
       </Shot>
       <Shot id="shot-syntax">
         <SyntaxHighlightBlock
