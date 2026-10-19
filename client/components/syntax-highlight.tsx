@@ -604,10 +604,12 @@ export function SyntaxHighlightBlock({
           flexDirection: "row",
           alignItems: "flex-start",
         },
+        // The gutter scales with Paseo's Code size, from 32px at the 12px default.
         lineNumber: {
-          width: 32,
-          fontSize: 12,
-          fontFamily: tokens.fontMono,
+          width: Math.round((tokens.codeFontSize * 8) / 3),
+          fontSize: tokens.codeFontSize,
+          lineHeight: tokens.codeLineHeight,
+          fontFamily: tokens.fontCode,
           color: tokens.foregroundSubtle,
           textAlign: "right",
           paddingRight: 10,
@@ -615,8 +617,8 @@ export function SyntaxHighlightBlock({
         },
         lineContent: {
           flex: 1,
-          fontSize: 12,
-          lineHeight: 18,
+          fontSize: tokens.codeFontSize,
+          lineHeight: tokens.codeLineHeight,
           fontFamily: tokens.fontCode,
           color: tokens.foreground,
         },

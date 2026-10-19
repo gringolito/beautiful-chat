@@ -148,10 +148,12 @@ Devicon brand marks, and the file-manager link.
 | ---------------------- | ------------------------------------------------------------------ |
 | Accent colour          | Follow the Paseo theme, or pick Jade, Violet, Amber, or Rose.      |
 | Interface font         | Embedded Inter, or the system interface face.                      |
-| Code glyphs            | Iosevka with ligatures, or literal glyphs.                         |
+| Code font              | All monospace text: Paseo's Code font, Iosevka, or a custom font.  |
 | Frosted glass          | Blur card surfaces, or paint them solid.                           |
 | Enhanced prompt bubble | Off hands prompts back to Paseo, whose bubble shows pasted images. |
 | Assistant markdown     | Off hands replies back to Paseo's own markdown renderer.           |
+
+All monospace text also follows Paseo's **Code size** (Settings → Appearance → Fonts).
 
 ---
 

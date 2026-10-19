@@ -48,6 +48,7 @@ const PREFERENCES = {
   accent: "host" as const,
   uiFont: "inter" as const,
   codeFont: "code" as const,
+  customCodeFont: "",
   frostedGlass: true,
   enhancedUserBubble: true,
 };

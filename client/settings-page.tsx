@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { Animated, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import type { PluginSurfaceProps } from "@getpaseo/plugin/client";
+import { TextInput } from "@getpaseo/plugin/client/react-native";
 import { hostFontEscape } from "./components/host-font-escape";
-import { radius, buildThemeTokens, type ExtendedThemeTokens } from "./components/theme-tokens";
+import { radius, useThemeTokens, type ExtendedThemeTokens } from "./components/theme-tokens";
 import {
   ACCENT_PRESETS,
   resetEnhancerPreferences,
@@ -171,6 +172,7 @@ function ChoiceRow<T extends string>({
   options,
   onChange,
   tokens,
+  children,
 }: {
   title: string;
   description: string;
@@ -178,6 +180,8 @@ function ChoiceRow<T extends string>({
   options: ReadonlyArray<{ value: T; label: string }>;
   onChange(value: T): void;
   tokens: ExtendedThemeTokens;
+  /** Extra controls drawn under the options, inside the same row. */
+  children?: React.ReactNode;
 }) {
   return (
     <View style={[styles.row, { borderTopColor: tokens.borderSubtle }]}>
@@ -203,6 +207,7 @@ function ChoiceRow<T extends string>({
           />
         ))}
       </View>
+      {children}
     </View>
   );
 }
@@ -210,10 +215,7 @@ function ChoiceRow<T extends string>({
 /** Settings content mounted by Paseo under the selected host's Plugin settings. */
 export function BeautifulChatSettingsPage({ theme }: PluginSurfaceProps) {
   const preferences = useEnhancerPreferences();
-  const tokens = useMemo(
-    () => buildThemeTokens(theme.colors, preferences),
-    [preferences, theme.colors],
-  );
+  const tokens = useThemeTokens(theme.colors, preferences);
 
   return (
     <View {...hostFontEscape} style={[styles.container, { backgroundColor: tokens.surface0 }]}>
@@ -302,16 +304,40 @@ export function BeautifulChatSettingsPage({ theme }: PluginSurfaceProps) {
         />
 
         <ChoiceRow<CodeFontPreference>
-          title="Code glyphs"
-          description="Use programming ligatures inside syntax blocks, or keep every code glyph literal."
+          title="Code font"
+          description="The face for code blocks, diffs, inline code, terminal output, and every other monospace surface. Paseo uses the Code font from Paseo's Settings → Appearance → Fonts. Monospace text always follows Paseo's Code size. With Iosevka ligatures, only code blocks and diffs are shaped. Custom takes any installed font family."
           value={preferences.codeFont}
           options={[
-            { value: "code", label: "Ligatures" },
-            { value: "plain", label: "Literal" },
+            { value: "host", label: "Paseo" },
+            { value: "code", label: "Iosevka ligatures" },
+            { value: "plain", label: "Iosevka literal" },
+            { value: "custom", label: "Custom" },
           ]}
           onChange={(codeFont) => updateEnhancerPreferences({ codeFont })}
           tokens={tokens}
-        />
+        >
+          {preferences.codeFont === "custom" && (
+            <TextInput
+              accessibilityLabel="Custom code font family"
+              value={preferences.customCodeFont}
+              onChangeText={(customCodeFont) => updateEnhancerPreferences({ customCodeFont })}
+              placeholder="JetBrains Mono"
+              placeholderTextColor={tokens.foregroundSubtle}
+              autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
+              style={[
+                styles.fontInput,
+                {
+                  color: tokens.foreground,
+                  backgroundColor: tokens.surface2,
+                  borderColor: tokens.borderSubtle,
+                  fontFamily: tokens.fontCode,
+                },
+              ]}
+            />
+          )}
+        </ChoiceRow>
 
         <ToggleRow
           title="Frosted glass"
@@ -411,6 +437,13 @@ const styles = StyleSheet.create({
   options: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   option: { borderWidth: 1, borderRadius: radius.block, paddingHorizontal: 10, paddingVertical: 7 },
   optionLabel: { fontSize: 12, fontWeight: "600" },
+  fontInput: {
+    borderWidth: 1,
+    borderRadius: radius.block,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    fontSize: 13,
+  },
   accentOptions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   accentOption: {
     flexDirection: "row",
