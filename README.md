@@ -152,8 +152,38 @@ Devicon brand marks, and the file-manager link.
 | Frosted glass          | Blur card surfaces, or paint them solid.                           |
 | Enhanced prompt bubble | Off hands prompts back to Paseo, whose bubble shows pasted images. |
 | Assistant markdown     | Off hands replies back to Paseo's own markdown renderer.           |
+| Clean chat             | Hide tool calls, reasoning, checklists and notices (see below).    |
 
 All monospace text also follows Paseo's **Code size** (Settings → Appearance → Fonts).
+
+---
+
+## Clean chat
+
+A long turn buries the conversation under tool calls and reasoning. Clean chat hides them and
+keeps:
+
+- your prompts and the agent's replies;
+- messages between agents: advisor notes, relayed IRC messages, `task` delegations, hub `send`
+  and received messages, and Paseo's `create_agent` and `send_agent_prompt` calls;
+- `ask` questions, errors, warnings, and pending approvals.
+
+Everything else is hidden: tool calls, reasoning traces, checklists, harness reminders and
+notices, and Paseo's info-level notices such as an MCP mount or a finished background job.
+
+While the agent runs, its newest tool call stays visible so you can see what it is doing. The
+card hides again when the agent replies or the turn ends. Reasoning that follows a tool call
+does not hide that call.
+
+The **Clean chat** pill under each composer switches between clean and full chat for every
+chat on this client. **Settings → Plugins → Beautiful Chat** has the same switch. Clean chat is
+on by default.
+
+On iOS and Android a hidden row still takes up the host's gap between rows, and Paseo's own
+notices stay visible. Hiding them needs the stylesheet only the web and desktop builds have.
+
+An agent gets its pill the first time the plugin draws one of its rows. A brand-new chat shows
+the pill after the first prompt.
 
 ---
 

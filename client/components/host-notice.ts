@@ -29,7 +29,7 @@ const LEVEL_COLORS = [
  * Off web there is no CSSOM and this is a no-op: the native row keeps the
  * host's styling, which is the honest outcome rather than a half-applied one.
  */
-function findColorClasses(): Map<string, string> {
+export function findColorClasses(): Map<string, string> {
   const found = new Map<string, string>();
 
   for (const sheet of Array.from(document.styleSheets)) {

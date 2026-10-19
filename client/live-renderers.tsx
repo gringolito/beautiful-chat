@@ -23,8 +23,11 @@ import { MarkdownView } from "./components/markdown/markdown-view";
 import { TimelineTailHub } from "./components/hub-live";
 import { AssistantFooter } from "./components/turn-footer";
 import { SystemCard } from "./components/system-card";
-import { parseSystemEnvelope } from "./system-envelope";
+import { FoldedRow } from "./components/folded-row";
+import { isConversationEnvelope, parseAdvisorNote, parseSystemEnvelope } from "./system-envelope";
 import { useIsTimelineTail } from "./timeline-tail";
+import { noteMessageActivity, noteToolActivity, useIsCurrentTool } from "./chat-activity";
+import { isConversationTool, useCleanChat } from "./clean-chat";
 import type {
   ToolCalloutData,
   ToolCallKind,
@@ -455,6 +458,9 @@ export function LiveToolCallRenderer({
           (output && typeof output === "object"
             ? extractContentText(output as Record<string, unknown>)
             : undefined);
+    // A harness message the host turned into a row (`plain_text`) carries its
+    // words in `text`, which none of the fields above reads.
+    const plainText = detailType === "plain_text" ? asString(detail.text) : undefined;
     const durationMs =
       typeof detail.durationMs === "number" ? detail.durationMs : extractEvalDuration(output);
     let toolKind: ToolCallKind = "bash";
@@ -566,7 +572,7 @@ export function LiveToolCallRenderer({
       // would draw the request and the reply a second time.
       code: toolKind === "github" ? undefined : code,
       diff,
-      output: toolKind === "github" || evalCells.length > 0 ? undefined : outputText,
+      output: toolKind === "github" || evalCells.length > 0 ? undefined : outputText || plainText,
       cells: evalCells.length > 0 ? evalCells : undefined,
       askOptions: askOptions.length > 0 ? askOptions : undefined,
       askAnswer: askAnswer.length > 0 ? askAnswer : undefined,
@@ -612,31 +618,62 @@ export function LiveToolCallRenderer({
     cwd,
   );
 
+  // Advisor notes, relayed IRC messages and late notices reach the timeline as
+  // tool rows. They read as cards, not as a tool's output.
+  const envelope = useMemo(() => {
+    const detail = data.detail;
+    if (detail?.type !== "plain_text" || typeof detail.text !== "string") return null;
+    if (data.name.toLowerCase() === "advisor") {
+      return parseAdvisorNote(asString(detail.label), detail.text);
+    }
+    return parseSystemEnvelope(detail.text);
+  }, [data.detail, data.name]);
+
+  const at = timestamp.getTime();
+  const itemKey = `tool:${data.callId ?? calloutData.title}:${at}`;
+  useEffect(() => {
+    noteToolActivity(agentId, itemKey, at);
+  }, [agentId, itemKey, at]);
+  const isCurrentTool = useIsCurrentTool(agentId, itemKey);
+  const running = useAgent(agentId, (agent) => agent.status === "running") === true;
+  const cleanChat = useCleanChat(agentId);
+  const conversation = envelope
+    ? isConversationEnvelope(envelope)
+    : isConversationTool(data.name, calloutData);
+
+  const tailHub = (
+    <TimelineTailHub agentId={agentId} tokens={tokens} itemKey={itemKey} at={at} kind="tool" />
+  );
+
+  if (cleanChat && !conversation && !(running && isCurrentTool)) {
+    return <FoldedRow>{tailHub}</FoldedRow>;
+  }
+
   return (
     <View {...hostFontEscape}>
-      <ToolCallout
-        data={calloutData}
-        tokens={tokens}
-        defaultExpanded={isExpanded}
-        onRevealPath={handleRevealPath}
-        imageFile={imageFile}
-      />
-      <TimelineTailHub
-        agentId={agentId}
-        tokens={tokens}
-        itemKey={`tool:${data.callId ?? calloutData.title}:${timestamp.getTime()}`}
-        at={timestamp.getTime()}
-        kind="tool"
-      />
+      {envelope ? (
+        <SystemCard envelope={envelope} tokens={tokens} />
+      ) : (
+        <ToolCallout
+          data={calloutData}
+          tokens={tokens}
+          defaultExpanded={isExpanded}
+          onRevealPath={handleRevealPath}
+          imageFile={imageFile}
+        />
+      )}
+      {tailHub}
     </View>
   );
 }
 
 export function LiveReasoningRenderer({
+  agentId,
   item,
   theme,
 }: PluginTimelineItemProps<LiveReasoningPayload>) {
   const preferences = useEnhancerPreferences();
+  const cleanChat = useCleanChat(agentId);
   const tokens = useThemeTokens(theme.colors, preferences);
   useSelectionActions(tokens, preferences.selectionActions);
   usePointerGlow(preferences.pointerGlow);
@@ -687,6 +724,8 @@ export function LiveReasoningRenderer({
     };
   }, [data, revealed]);
 
+  if (cleanChat) return <FoldedRow />;
+
   return (
     <View {...hostFontEscape}>
       <ReasoningTrace
@@ -698,8 +737,13 @@ export function LiveReasoningRenderer({
   );
 }
 
-export function LiveTodoRenderer({ item, theme }: PluginTimelineItemProps<LiveTodoPayload>) {
+export function LiveTodoRenderer({
+  agentId,
+  item,
+  theme,
+}: PluginTimelineItemProps<LiveTodoPayload>) {
   const preferences = useEnhancerPreferences();
+  const cleanChat = useCleanChat(agentId);
   const tokens = useThemeTokens(theme.colors, preferences);
   useSelectionActions(tokens, preferences.selectionActions);
   usePointerGlow(preferences.pointerGlow);
@@ -724,6 +768,8 @@ export function LiveTodoRenderer({ item, theme }: PluginTimelineItemProps<LiveTo
       tasks,
     };
   }, [data]);
+
+  if (cleanChat) return <FoldedRow />;
 
   return (
     <View {...hostFontEscape}>
@@ -764,6 +810,19 @@ export function LiveAssistantRenderer({
   // files any unclaimed `custom` message under this item kind. They are not
   // the model's words, so they are drawn as a card, not as prose.
   const envelope = useMemo(() => parseSystemEnvelope(item.data.text), [item.data.text]);
+  const cleanChat = useCleanChat(agentId);
+  const folded = cleanChat && envelope !== null && !isConversationEnvelope(envelope);
+
+  const at = timestamp.getTime();
+  useEffect(() => {
+    if (!folded) noteMessageActivity(agentId, at);
+  }, [folded, agentId, at]);
+
+  const tailHub = (
+    <TimelineTailHub agentId={agentId} tokens={tokens} itemKey={itemKey} at={at} kind="reply" />
+  );
+
+  if (folded) return <FoldedRow>{tailHub}</FoldedRow>;
 
   return (
     <View {...hostFontEscape}>
@@ -775,13 +834,7 @@ export function LiveAssistantRenderer({
       {isTail && !envelope ? (
         <AssistantFooter text={item.data.text} at={timestamp} tokens={tokens} />
       ) : null}
-      <TimelineTailHub
-        agentId={agentId}
-        tokens={tokens}
-        itemKey={itemKey}
-        at={timestamp.getTime()}
-        kind="reply"
-      />
+      {tailHub}
     </View>
   );
 }
@@ -881,6 +934,15 @@ export function LiveUserMessageRenderer({
   // replay. A job result is not something the user said, so it never takes the
   // user bubble.
   const envelope = useMemo(() => parseSystemEnvelope(item.data.text), [item.data.text]);
+  const cleanChat = useCleanChat(agentId);
+  const folded = cleanChat && envelope !== null && !isConversationEnvelope(envelope);
+
+  const at = timestamp.getTime();
+  useEffect(() => {
+    if (!folded) noteMessageActivity(agentId, at);
+  }, [folded, agentId, at]);
+
+  if (folded) return <FoldedRow />;
 
   return (
     <View {...surfaceProps(hostFontEscape, promptRowAnchor(item.data.messageId))}>

@@ -20,20 +20,26 @@ interface SystemCardProps {
 const KIND_LOOK: Record<SystemEnvelopeKind, { glyph: string; label: string }> = {
   job: { glyph: "ListChecks", label: "Job" },
   message: { glyph: "Bot", label: "Agent" },
+  advisor: { glyph: "Brain", label: "Advisor" },
   reminder: { glyph: "AlertCircle", label: "Reminder" },
   process: { glyph: "Terminal", label: "Process" },
   notice: { glyph: "CircleDot", label: "Notice" },
 };
 
-/** Body longer than this opens closed: a job preview is pages of JSON. */
+/**
+ * Body longer than this opens closed: a job preview is pages of JSON. A
+ * relayed message or an advisor note opens regardless; reading it is the point.
+ */
 const COLLAPSE_LIMIT = 220;
 
 /**
  * The surface follows the envelope, not a guess about the text. A job carries
  * a tool's output and earns the code surface; a relayed message or a reminder
- * is written for a reader. JSON is JSON wherever it appears.
+ * is written for a reader. JSON is JSON wherever it appears, except in an
+ * advisor note, whose `[severity]` prefix only looks like an array.
  */
 function bodyKind(envelope: SystemEnvelope): "json" | "output" | "prose" {
+  if (envelope.kind === "advisor") return "prose";
   const head = envelope.body.trimStart()[0];
   if (head === "{" || head === "[") return "json";
   return envelope.kind === "job" ? "output" : "prose";
@@ -48,7 +54,11 @@ function bodyKind(envelope: SystemEnvelope): "json" | "output" | "prose" {
  */
 export function SystemCard({ envelope, tokens }: SystemCardProps): React.ReactElement {
   const look = KIND_LOOK[envelope.kind];
-  const [expanded, setExpanded] = useState(envelope.body.length <= COLLAPSE_LIMIT);
+  const [expanded, setExpanded] = useState(
+    envelope.kind === "message" ||
+      envelope.kind === "advisor" ||
+      envelope.body.length <= COLLAPSE_LIMIT,
+  );
   const accent = envelope.failed ? tokens.danger : tokens.foregroundSubtle;
   const kind = bodyKind(envelope);
 

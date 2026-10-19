@@ -52,6 +52,12 @@ export interface EnhancerPreferences {
   assistantMarkdown: boolean;
   /** Which look the markdown renderer uses. */
   markdownVariant: MarkdownVariantPreference;
+  /**
+   * Hides tool calls, reasoning, checklists and harness notices, keeping
+   * prompts, replies and the messages agents exchange. The newest tool call
+   * stays visible while the agent runs.
+   */
+  cleanChat: boolean;
 }
 
 const STORAGE_KEY = "paseo/beautiful-chat/preferences/v1";
@@ -67,6 +73,7 @@ export const DEFAULT_PREFERENCES: Readonly<EnhancerPreferences> = {
   selectionActions: true,
   assistantMarkdown: true,
   markdownVariant: "document",
+  cleanChat: true,
 };
 
 const listeners = new Set<() => void>();
@@ -123,6 +130,10 @@ function loadPreferences(): EnhancerPreferences {
         candidate.markdownVariant === "compact" || candidate.markdownVariant === "terminal"
           ? candidate.markdownVariant
           : DEFAULT_PREFERENCES.markdownVariant,
+      cleanChat:
+        typeof candidate.cleanChat === "boolean"
+          ? candidate.cleanChat
+          : DEFAULT_PREFERENCES.cleanChat,
     };
   } catch {
     return { ...DEFAULT_PREFERENCES };
@@ -159,12 +170,16 @@ export function resetEnhancerPreferences(): void {
   publish();
 }
 
+export function subscribeEnhancerPreferences(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
 export function useEnhancerPreferences(): EnhancerPreferences {
   return useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
+    subscribeEnhancerPreferences,
     getEnhancerPreferences,
     getEnhancerPreferences,
   );

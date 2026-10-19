@@ -12,7 +12,7 @@
  * guesses: a string that does not open with a known tag returns null and is
  * rendered as ordinary prose.
  */
-export type SystemEnvelopeKind = "job" | "message" | "reminder" | "process" | "notice";
+export type SystemEnvelopeKind = "job" | "message" | "advisor" | "reminder" | "process" | "notice";
 
 export interface SystemEnvelopeChip {
   label: string;
@@ -46,6 +46,7 @@ const PREVIEW = /<preview\b[^>]*>([\s\S]*?)<\/preview>/i;
 const OUTPUT = /<output>([\s\S]*?)<\/output>/i;
 const ATTRIBUTE = /([\w-]+)="([^"]*)"/g;
 const IRC_SENDER = /Incoming IRC message from agent `([^`]+)`:?/i;
+const ADVISORY = /<advisory\b([^>]*)>([\s\S]*?)(?:<\/advisory>|$)/i;
 // A launch line, not any sentence opening with those two words: the verb has
 // to be one the process supervisor actually reports.
 const PROCESS_LINE =
@@ -157,4 +158,33 @@ export function parseSystemEnvelope(text: string): SystemEnvelope | null {
   const title = firstProseLine(inner) ?? (kind === "reminder" ? "Reminder" : "System notice");
   const body = stripTags(inner.replace(title, "")).trim();
   return { kind, title, chips: [], body, failed: /error|fail/i.test(title) };
+}
+
+/**
+ * An advisor note. The host maps it to a tool call whose label counts the
+ * notes (`Advisor · 2 notes · 1 blocker`) and whose text lists them. A host
+ * that does not claim the note passes the raw `<advisory>` element instead.
+ */
+export function parseAdvisorNote(label: string | undefined, text: string): SystemEnvelope {
+  const advisory = text.match(ADVISORY);
+  const severity = advisory ? attributes(advisory[1] ?? "").get("severity") : undefined;
+  const body = (advisory ? (advisory[2] ?? "") : text).trim();
+  const summary = label?.replace(/^Advisor\s*·?\s*/i, "").trim();
+  return {
+    kind: "advisor",
+    title: summary || severity || "Note",
+    chips: [],
+    body,
+    failed: severity === "blocker" || /\bblockers?\b/i.test(summary ?? ""),
+  };
+}
+
+/**
+ * Whether an envelope carries words one agent addressed to another: a relayed
+ * message, an advisor note, or a subagent's report. Reminders, notices and
+ * process lines are harness bookkeeping.
+ */
+export function isConversationEnvelope(envelope: SystemEnvelope): boolean {
+  if (envelope.kind === "message" || envelope.kind === "advisor") return true;
+  return envelope.kind === "job" && envelope.chips.some((chip) => chip.label === "agent");
 }

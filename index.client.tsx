@@ -7,6 +7,8 @@ import { installShimmer } from "./client/components/shimmer";
 import { installPointerGlow } from "./client/components/glow";
 import { installHostNoticeStyle } from "./client/components/host-notice";
 import { installChatFind } from "./client/components/chat-find";
+import { installCleanChatStyle } from "./client/components/folded-row";
+import { installCleanChatPills } from "./client/clean-chat";
 import { extractPromptImages } from "./client/prompt-images";
 import { getEnhancerPreferences } from "./client/preferences";
 import {
@@ -34,6 +36,9 @@ export default function contribute(client: PluginClientContext) {
   const removeNoticeStyle = installHostNoticeStyle();
   // Paseo's Ctrl+F cannot reveal rows this plugin draws; this bar can.
   const removeChatFind = installChatFind();
+  // Clean chat: the composer toggle, and the rule that hides host notices.
+  const removeCleanChatStyle = installCleanChatStyle();
+  const removeCleanChatPills = installCleanChatPills(client);
 
   // Configuration lives in the host Settings area. The plugin has no showcase
   // surface, panels, or Command Center item.
@@ -264,6 +269,8 @@ export default function contribute(client: PluginClientContext) {
     removeGlow();
     removeNoticeStyle();
     removeChatFind();
+    removeCleanChatStyle();
+    removeCleanChatPills();
     removeToolTransformer();
     removeToolRenderer();
     removeReasoningTransformer();
