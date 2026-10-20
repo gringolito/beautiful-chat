@@ -1,7 +1,6 @@
 {
-  "id": "beautiful-chat",
+  "id": "curtain",
   "requirements": {
-    "paseo": ">=0.8.0"
-  },
-  "build": [["npm", "ci", "--include=dev"]]
+    "paseo": ">=0.9.0"
+  }
 }

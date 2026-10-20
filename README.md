@@ -1,4 +1,4 @@
-# Beautiful Chat
+# Curtain
 
 A Paseo plugin that redraws the Oh My Pi (OMP) chat stream: tool calls, reasoning, prompts, approvals,
 and checklists. It replaces the host rendering of OMP timeline items with typed, syntax-aware cards
@@ -13,11 +13,11 @@ them.
 ## Install
 
 ```bash
-paseo plugin install ABorakati/beautiful-chat
+paseo plugin install npm:@gringolito/curtain
 ```
 
-The manifest requires Paseo `>=0.8.0`. Open **Settings → Plugins → Beautiful Chat** for the
-accent, fonts, frosted glass, and prompt bubble options.
+The manifest requires Paseo `>=0.9.0`, the first release that installs plugins from npm. Open
+**Settings → Plugins → Curtain** for the accent, fonts, frosted glass, and prompt bubble options.
 
 ---
 
@@ -184,7 +184,7 @@ card hides again when the agent replies or the turn ends. Reasoning that follows
 does not hide that call.
 
 The **Clean chat** pill under each composer switches between clean and full chat for every
-chat on this client. **Settings → Plugins → Beautiful Chat** has the same switch. Clean chat is
+chat on this client. **Settings → Plugins → Curtain** has the same switch. Clean chat is
 on by default.
 
 On iOS and Android Paseo's own notices stay visible. Hiding them needs the stylesheet only the web
@@ -206,7 +206,7 @@ to the previous one, and Escape closes the bar.
 The bar searches only messages the chat has loaded. Scroll up first to include older history.
 
 To keep Paseo's native search, which also searches unloaded history, turn off **Assistant
-markdown** and **Enhanced prompt bubble** in **Settings -> Plugins -> Beautiful Chat**. Paseo then
+markdown** and **Enhanced prompt bubble** in **Settings -> Plugins -> Curtain**. Paseo then
 draws replies and prompts itself, and Ctrl/Cmd+F opens Paseo's find instead of the plugin's bar.
 New messages follow the change.
 Tool, reasoning, and checklist cards keep the plugin's styling, so Paseo's find still cannot reveal a
@@ -300,7 +300,7 @@ timestamp, item}`, and plugin navigation offers only `openSettings`, `openSurfac
 ## Project structure
 
 ```text
-beautiful-chat/
+curtain/
   paseo-plugin.json          # Manifest: id and Paseo requirement
   index.client.tsx           # Timeline transformers, renderers, settings screen
   index.server.ts            # Daemon-side RPCs (file.reveal)
@@ -324,7 +324,7 @@ beautiful-chat/
 ```bash
 npm install
 npm run typecheck
-paseo plugin reload beautiful-chat
+paseo plugin reload curtain
 ```
 
 Rebuild the screenshots after a visual change:
@@ -339,6 +339,32 @@ esbuild .showcase/showcase.tsx --bundle --outfile=.showcase/showcase.js --jsx=au
 
 Then serve `.showcase/` and capture each `#shot-*` element.
 
+## Publishing
+
+The package is published to npm as
+[`@gringolito/curtain`](https://www.npmjs.com/package/@gringolito/curtain) by
+`.github/workflows/publish.yml`, which runs when a GitHub release is published. The release tag
+must be `v` followed by the `version` in `package.json`:
+
+```bash
+npm version patch --no-git-tag-version   # or minor / major; also updates npm-shrinkwrap.json
+version="v$(node -p 'require("./package.json").version')"
+git commit -S -s -am "chore(release): $version"
+git push
+gh release create "$version" --generate-notes
+```
+
+The workflow authenticates through npm trusted publishing, so it needs no token: the package's
+npm settings must list `gringolito/curtain` and `publish.yml` as a trusted publisher. The
+runtime dependencies are locked by `npm-shrinkwrap.json`, which npm ships inside the package.
+
+## Acknowledgements
+
+Curtain is a fork of [Beautiful Chat](https://github.com/ABorakati/beautiful-chat) by
+[ABorakati](https://github.com/ABorakati). Thank you for the original plugin and for the
+groundwork this project builds on: the card designs, the syntax block, and the SDK limitations
+documented above all started there.
+
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).

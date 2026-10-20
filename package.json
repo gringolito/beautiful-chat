@@ -1,9 +1,32 @@
 {
-  "name": "beautiful-chat",
+  "name": "@gringolito/curtain",
   "version": "0.1.0",
-  "private": true,
-  "description": "Paseo plugin: a beautiful chat for OMP tools, reasoning, prompts, and tasks",
+  "description": "Paseo plugin that redraws the Oh My Pi chat stream: tool calls, reasoning, prompts, and tasks",
+  "keywords": [
+    "paseo",
+    "paseo-plugin",
+    "oh-my-pi"
+  ],
+  "homepage": "https://github.com/gringolito/curtain#readme",
+  "bugs": {
+    "url": "https://github.com/gringolito/curtain/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gringolito/curtain.git"
+  },
   "license": "MIT",
+  "files": [
+    "paseo-plugin.json",
+    "index.client.tsx",
+    "index.server.ts",
+    "client/",
+    "npm-shrinkwrap.json",
+    "shared/"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
