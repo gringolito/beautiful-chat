@@ -3,7 +3,6 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Glyph } from "./glyph";
 import { frosted } from "./frosted";
 import { surfaceProps } from "./view-props";
-import { glowing } from "./glow";
 import { Pop } from "./motion";
 import { radius, type ExtendedThemeTokens } from "./theme-tokens";
 import { FileTypeLogo, detectFileType } from "./file-type-logo";
@@ -609,7 +608,7 @@ export function SyntaxHighlightBlock({
           width: Math.round((tokens.codeFontSize * 8) / 3),
           fontSize: tokens.codeFontSize,
           lineHeight: tokens.codeLineHeight,
-          fontFamily: tokens.fontCode,
+          fontFamily: tokens.fontMono,
           color: tokens.foregroundSubtle,
           textAlign: "right",
           paddingRight: 10,
@@ -619,7 +618,7 @@ export function SyntaxHighlightBlock({
           flex: 1,
           fontSize: tokens.codeFontSize,
           lineHeight: tokens.codeLineHeight,
-          fontFamily: tokens.fontCode,
+          fontFamily: tokens.fontMono,
           color: tokens.foreground,
         },
       }),
@@ -627,8 +626,6 @@ export function SyntaxHighlightBlock({
   );
 
   return (
-    // No pointer glow here: a code block is an inner surface, and lighting it
-    // separately from the card that holds it reads as two hovers at once.
     <View {...surfaceProps(frosted, selectionSurface)} style={styles.container}>
       {(filename || language) && (
         <View style={styles.header}>

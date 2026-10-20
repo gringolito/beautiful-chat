@@ -1,8 +1,7 @@
 import React, { type ReactElement } from "react";
 import { View, Text, StyleSheet, Image } from "react-native";
 import { Icon as HostIcon } from "@getpaseo/plugin/client/react-native";
-import { resolveCodeFonts } from "./theme-tokens";
-import { useEnhancerPreferences } from "../preferences";
+import { fontMono } from "./theme-tokens";
 import { MARK_BITMAPS, MONO_MARKS } from "./mark-bitmaps";
 import { unselectable } from "./selection";
 
@@ -58,8 +57,7 @@ function BrandMark({ id, size, color }: { id: string; size: number; color: strin
  */
 export function Icon({ name, size = 13, color = "#94a3b8" }: IconProps): ReactElement {
   const safeColor = color === "currentColor" ? "#94a3b8" : color;
-  const monoFont = resolveCodeFonts(useEnhancerPreferences()).mono;
-  const glyph = renderGlyph(name, size, safeColor, monoFont);
+  const glyph = renderGlyph(name, size, safeColor);
   return (
     <View
       style={{
@@ -76,7 +74,7 @@ export function Icon({ name, size = 13, color = "#94a3b8" }: IconProps): ReactEl
 
 export { Icon as Glyph };
 
-function renderGlyph(name: string, size: number, color: string, monoFont: string): ReactElement {
+function renderGlyph(name: string, size: number, color: string): ReactElement {
   const stroke = Math.max(1.2, size / 8.5);
 
   switch (name) {
@@ -194,7 +192,7 @@ function renderGlyph(name: string, size: number, color: string, monoFont: string
         <Text
           style={[
             styles.mono,
-            { fontFamily: monoFont, fontSize: Math.max(8.5, size - 2), color },
+            { fontFamily: fontMono, fontSize: Math.max(8.5, size - 2), color },
             unselectable,
           ]}
         >
@@ -305,7 +303,7 @@ function renderGlyph(name: string, size: number, color: string, monoFont: string
         <Text
           style={[
             styles.mono,
-            { fontFamily: monoFont, fontSize: size - 2, color, fontWeight: "700" },
+            { fontFamily: fontMono, fontSize: size - 2, color, fontWeight: "700" },
             unselectable,
           ]}
         >
@@ -420,7 +418,7 @@ function renderGlyph(name: string, size: number, color: string, monoFont: string
         <Text
           style={[
             styles.mono,
-            { fontFamily: monoFont, fontSize: size - 3, color, fontWeight: "700" },
+            { fontFamily: fontMono, fontSize: size - 3, color, fontWeight: "700" },
             unselectable,
           ]}
         >
@@ -433,7 +431,7 @@ function renderGlyph(name: string, size: number, color: string, monoFont: string
         <Text
           style={[
             styles.mono,
-            { fontFamily: monoFont, fontSize: size - 1, color, fontWeight: "700" },
+            { fontFamily: fontMono, fontSize: size - 1, color, fontWeight: "700" },
             unselectable,
           ]}
         >

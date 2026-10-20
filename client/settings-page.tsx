@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import type { PluginSurfaceProps } from "@getpaseo/plugin/client";
-import { TextInput } from "@getpaseo/plugin/client/react-native";
 import { hostFontEscape } from "./components/host-font-escape";
 import { radius, useThemeTokens, type ExtendedThemeTokens } from "./components/theme-tokens";
 import {
@@ -10,8 +9,6 @@ import {
   updateEnhancerPreferences,
   useEnhancerPreferences,
   type AccentPreset,
-  type CodeFontPreference,
-  type UiFontPreference,
 } from "./preferences";
 
 const ACCENT_OPTIONS: ReadonlyArray<{
@@ -172,7 +169,6 @@ function ChoiceRow<T extends string>({
   options,
   onChange,
   tokens,
-  children,
 }: {
   title: string;
   description: string;
@@ -180,8 +176,6 @@ function ChoiceRow<T extends string>({
   options: ReadonlyArray<{ value: T; label: string }>;
   onChange(value: T): void;
   tokens: ExtendedThemeTokens;
-  /** Extra controls drawn under the options, inside the same row. */
-  children?: React.ReactNode;
 }) {
   return (
     <View style={[styles.row, { borderTopColor: tokens.borderSubtle }]}>
@@ -207,7 +201,6 @@ function ChoiceRow<T extends string>({
           />
         ))}
       </View>
-      {children}
     </View>
   );
 }
@@ -291,67 +284,11 @@ export function CurtainSettingsPage({ theme }: PluginSurfaceProps) {
           </View>
         </View>
 
-        <ChoiceRow<UiFontPreference>
-          title="Interface font"
-          description="Choose the embedded Inter face or the system interface face."
-          value={preferences.uiFont}
-          options={[
-            { value: "inter", label: "Inter" },
-            { value: "system", label: "System" },
-          ]}
-          onChange={(uiFont) => updateEnhancerPreferences({ uiFont })}
-          tokens={tokens}
-        />
-
-        <ChoiceRow<CodeFontPreference>
-          title="Code font"
-          description="The face for code blocks, diffs, inline code, terminal output, and every other monospace surface. Paseo uses the Code font from Paseo's Settings → Appearance → Fonts. Monospace text always follows Paseo's Code size. With Iosevka ligatures, only code blocks and diffs are shaped. Custom takes any installed font family."
-          value={preferences.codeFont}
-          options={[
-            { value: "host", label: "Paseo" },
-            { value: "code", label: "Iosevka ligatures" },
-            { value: "plain", label: "Iosevka literal" },
-            { value: "custom", label: "Custom" },
-          ]}
-          onChange={(codeFont) => updateEnhancerPreferences({ codeFont })}
-          tokens={tokens}
-        >
-          {preferences.codeFont === "custom" && (
-            <TextInput
-              accessibilityLabel="Custom code font family"
-              value={preferences.customCodeFont}
-              onChangeText={(customCodeFont) => updateEnhancerPreferences({ customCodeFont })}
-              placeholder="JetBrains Mono"
-              placeholderTextColor={tokens.foregroundSubtle}
-              autoCapitalize="none"
-              autoCorrect={false}
-              spellCheck={false}
-              style={[
-                styles.fontInput,
-                {
-                  color: tokens.foreground,
-                  backgroundColor: tokens.surface2,
-                  borderColor: tokens.borderSubtle,
-                  fontFamily: tokens.fontCode,
-                },
-              ]}
-            />
-          )}
-        </ChoiceRow>
-
         <ToggleRow
           title="Frosted glass"
           description="Blur surfaces where the host supports it, or use solid surfaces instead."
           value={preferences.frostedGlass}
           onChange={(frostedGlass) => updateEnhancerPreferences({ frostedGlass })}
-          tokens={tokens}
-        />
-
-        <ToggleRow
-          title="Pointer glow"
-          description="A soft light follows the pointer across each card. Desktop and web only: touch platforms have no hover, and the light is skipped when the system asks for reduced motion."
-          value={preferences.pointerGlow}
-          onChange={(pointerGlow) => updateEnhancerPreferences({ pointerGlow })}
           tokens={tokens}
         />
 
@@ -445,13 +382,6 @@ const styles = StyleSheet.create({
   options: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   option: { borderWidth: 1, borderRadius: radius.block, paddingHorizontal: 10, paddingVertical: 7 },
   optionLabel: { fontSize: 12, fontWeight: "600" },
-  fontInput: {
-    borderWidth: 1,
-    borderRadius: radius.block,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    fontSize: 13,
-  },
   accentOptions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   accentOption: {
     flexDirection: "row",

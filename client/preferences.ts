@@ -9,27 +9,11 @@ export const ACCENT_PRESETS = {
 } as const;
 
 export type AccentPreset = keyof typeof ACCENT_PRESETS;
-export type UiFontPreference = "inter" | "system";
-/**
- * `host` follows the monospace font chosen in Paseo's own appearance settings;
- * `code` and `plain` are the embedded Iosevka with and without ligatures;
- * `custom` uses `customCodeFont`.
- */
-export type CodeFontPreference = "host" | "code" | "plain" | "custom";
 export type MarkdownVariantPreference = "document" | "compact" | "terminal";
 
 export interface EnhancerPreferences {
   accent: AccentPreset;
-  uiFont: UiFontPreference;
-  codeFont: CodeFontPreference;
-  /** A CSS font-family, read only when `codeFont` is `custom`. */
-  customCodeFont: string;
   frostedGlass: boolean;
-  /**
-   * A light that follows the pointer across a card. Web and desktop only:
-   * touch platforms have no hover, so the attribute is inert there.
-   */
-  pointerGlow: boolean;
   /**
    * Paseo maps a stream item to the plugin timeline item before any transformer
    * runs, and that mapping carries only the text. Pasted images therefore never
@@ -64,11 +48,7 @@ const STORAGE_KEY = "paseo/curtain/preferences/v1";
 
 export const DEFAULT_PREFERENCES: Readonly<EnhancerPreferences> = {
   accent: "host",
-  uiFont: "inter",
-  codeFont: "host",
-  customCodeFont: "",
   frostedGlass: true,
-  pointerGlow: true,
   enhancedUserBubble: true,
   selectionActions: true,
   assistantMarkdown: true,
@@ -87,10 +67,6 @@ function isAccentPreset(value: unknown): value is AccentPreset {
   return typeof value === "string" && value in ACCENT_PRESETS;
 }
 
-function isCodeFontPreference(value: unknown): value is CodeFontPreference {
-  return value === "host" || value === "code" || value === "plain" || value === "custom";
-}
-
 function loadPreferences(): EnhancerPreferences {
   try {
     const stored = storage()?.getItem(STORAGE_KEY);
@@ -98,22 +74,10 @@ function loadPreferences(): EnhancerPreferences {
     const candidate = JSON.parse(stored) as Partial<EnhancerPreferences>;
     return {
       accent: isAccentPreset(candidate.accent) ? candidate.accent : DEFAULT_PREFERENCES.accent,
-      uiFont: candidate.uiFont === "system" ? "system" : DEFAULT_PREFERENCES.uiFont,
-      codeFont: isCodeFontPreference(candidate.codeFont)
-        ? candidate.codeFont
-        : DEFAULT_PREFERENCES.codeFont,
-      customCodeFont:
-        typeof candidate.customCodeFont === "string"
-          ? candidate.customCodeFont
-          : DEFAULT_PREFERENCES.customCodeFont,
       frostedGlass:
         typeof candidate.frostedGlass === "boolean"
           ? candidate.frostedGlass
           : DEFAULT_PREFERENCES.frostedGlass,
-      pointerGlow:
-        typeof candidate.pointerGlow === "boolean"
-          ? candidate.pointerGlow
-          : DEFAULT_PREFERENCES.pointerGlow,
       enhancedUserBubble:
         typeof candidate.enhancedUserBubble === "boolean"
           ? candidate.enhancedUserBubble

@@ -150,8 +150,9 @@ const ALIGN_KEYS: Record<MdAlign, "cellLeft" | "cellCenter" | "cellRight"> = {
 };
 
 // React Native offers no synchronous text measurement, so a column's width is
-// estimated from its longest cell. These ratios are the average advance width
-// of Inter and Iosevka as a fraction of the font size.
+// estimated from its longest cell. These ratios approximate the average
+// advance width of Paseo's interface and code faces as a fraction of the font
+// size.
 const CHAR_RATIO_UI = 0.55;
 const CHAR_RATIO_MONO = 0.62;
 

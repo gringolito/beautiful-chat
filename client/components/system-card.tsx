@@ -3,7 +3,6 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Glyph } from "./glyph";
 import { frosted } from "./frosted";
 import { surfaceProps } from "./view-props";
-import { glowing } from "./glow";
 import { Rotate } from "./motion";
 import { radius } from "./theme-tokens";
 import type { ExtendedThemeTokens } from "./theme-tokens";
@@ -151,10 +150,7 @@ export function SystemCard({ envelope, tokens }: SystemCardProps): React.ReactEl
   );
 
   return (
-    <View
-      {...surfaceProps(frosted, glowing(tokens.isDark), selectionSurface)}
-      style={styles.container}
-    >
+    <View {...surfaceProps(frosted, selectionSurface)} style={styles.container}>
       {envelope.body ? (
         <Pressable accessibilityRole="button" onPress={() => setExpanded((prev) => !prev)}>
           {head}
