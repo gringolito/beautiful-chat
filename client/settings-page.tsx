@@ -356,6 +356,14 @@ export function BeautifulChatSettingsPage({ theme }: PluginSurfaceProps) {
         />
 
         <ToggleRow
+          title="Clean chat"
+          description="Hides tool calls, reasoning, checklists and harness notices, leaving your prompts, the replies, and the messages agents send each other, including advisor notes. While the agent works, its newest tool call stays on screen. The Clean chat pill under the composer switches this from any chat."
+          value={preferences.cleanChat}
+          onChange={(cleanChat) => updateEnhancerPreferences({ cleanChat })}
+          tokens={tokens}
+        />
+
+        <ToggleRow
           title="Enhanced prompt bubble"
           description="Paseo removes pasted images before a plugin sees the message, so the enhanced bubble cannot show them. Turn this off for Paseo's own bubble with image previews. New prompts follow the change."
           value={preferences.enhancedUserBubble}

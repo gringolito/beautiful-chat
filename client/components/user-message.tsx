@@ -42,7 +42,7 @@ function formatTokens(value: number): string {
   return `${(Math.round(value / 100_000) / 10).toFixed(1)}M`;
 }
 
-function formatClock(value: Date): string {
+export function formatClock(value: Date): string {
   const hh = String(value.getHours()).padStart(2, "0");
   const mm = String(value.getMinutes()).padStart(2, "0");
   const ss = String(value.getSeconds()).padStart(2, "0");

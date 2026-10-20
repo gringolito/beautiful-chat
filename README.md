@@ -131,6 +131,14 @@ usage.
 
 ![Prompt bubble](docs/images/user.png)
 
+### Reply card
+
+Each agent reply sits in its own card, so consecutive replies read as separate messages. The card
+mirrors the prompt bubble on the agent's side: an **Agent** label, the time, a copy button, and a
+square corner at the top left.
+
+![Two consecutive replies](docs/images/reply.png)
+
 ### Syntax block
 
 Shared by every card that shows code: language detection from the path, line numbers, diff tints,
@@ -151,9 +159,39 @@ Devicon brand marks, and the file-manager link.
 | Code font              | All monospace text: Paseo's Code font, Iosevka, or a custom font.  |
 | Frosted glass          | Blur card surfaces, or paint them solid.                           |
 | Enhanced prompt bubble | Off hands prompts back to Paseo, whose bubble shows pasted images. |
-| Assistant markdown     | Off hands replies back to Paseo's own markdown renderer.           |
+| Assistant markdown     | Off hands replies back to Paseo's own renderer, without the card.  |
+| Clean chat             | Hide tool calls, reasoning, checklists and notices (see below).    |
 
 All monospace text also follows Paseo's **Code size** (Settings → Appearance → Fonts).
+
+---
+
+## Clean chat
+
+A long turn buries the conversation under tool calls and reasoning. Clean chat hides them and
+keeps:
+
+- your prompts and the agent's replies;
+- messages between agents: advisor notes, relayed IRC messages, `task` delegations, hub `send`
+  and received messages, and Paseo's `create_agent` and `send_agent_prompt` calls;
+- `ask` questions, errors, warnings, and pending approvals.
+
+Everything else is hidden: tool calls, reasoning traces, checklists, harness reminders and
+notices, and Paseo's info-level notices such as an MCP mount or a finished background job.
+
+While the agent runs, its newest tool call stays visible so you can see what it is doing. The
+card hides again when the agent replies or the turn ends. Reasoning that follows a tool call
+does not hide that call.
+
+The **Clean chat** pill under each composer switches between clean and full chat for every
+chat on this client. **Settings → Plugins → Beautiful Chat** has the same switch. Clean chat is
+on by default.
+
+On iOS and Android Paseo's own notices stay visible. Hiding them needs the stylesheet only the web
+and desktop builds have.
+
+An agent gets its pill the first time the plugin draws one of its rows. A brand-new chat shows
+the pill after the first prompt.
 
 ---
 
@@ -217,7 +255,9 @@ timestamp, item}`, and plugin navigation offers only `openSettings`, `openSurfac
    way to decorate an item or keep host affordances that the plugin does not reimplement. Returning
    `undefined` is the only opt-out.
 4. **Transform results are cached per item.** Changing a preference does not re-run transformers for
-   items already on screen. New items follow the change; existing ones need a reload.
+   items already on screen. New items follow the change; existing ones need a reload. Clean chat
+   works around this by registering its transformers again whenever it flips, which hands the host
+   a new transform function and so re-projects the rows already drawn.
 5. **Renderers get no workspace.** Props carry `agentId` only, so `cwd` and `workspaceId` need a
    second lookup through `useAgent`.
 6. **Token usage is live-only.** Usage is not persisted on timeline items, so a turn this client did
@@ -291,8 +331,10 @@ Rebuild the screenshots after a visual change:
 
 ```bash
 esbuild .showcase/showcase.tsx --bundle --outfile=.showcase/showcase.js --jsx=automatic \
+  --define:global=window --define:process.env.NODE_ENV='"development"' \
   --alias:react-native=react-native-web \
-  --alias:@getpaseo/plugin/client/react-native=./.showcase/shims/plugin-react-native.tsx
+  --alias:@getpaseo/plugin/client/react-native=./.showcase/shims/plugin-react-native.tsx \
+  --alias:@getpaseo/plugin/client=./.showcase/shims/plugin-client.tsx
 ```
 
 Then serve `.showcase/` and capture each `#shot-*` element.

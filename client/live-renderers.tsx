@@ -21,10 +21,16 @@ import { buildHubData } from "./hub-details";
 import { publishHubSnapshot } from "./hub-activity";
 import { MarkdownView } from "./components/markdown/markdown-view";
 import { TimelineTailHub } from "./components/hub-live";
-import { AssistantFooter } from "./components/turn-footer";
+import { AssistantMessage } from "./components/assistant-message";
 import { SystemCard } from "./components/system-card";
-import { parseSystemEnvelope } from "./system-envelope";
-import { useIsTimelineTail } from "./timeline-tail";
+import {
+  isConversationEnvelope,
+  parseAdvisorNote,
+  parseSystemEnvelope,
+  type SystemEnvelope,
+} from "./system-envelope";
+import { noteMessageActivity, noteToolActivity, useIsCurrentTool } from "./chat-activity";
+import { isConversationTool, useCleanChat } from "./clean-chat";
 import type {
   ToolCalloutData,
   ToolCallKind,
@@ -384,22 +390,8 @@ export function languageFromPath(filePath?: string): string | undefined {
   return LANGUAGE_BY_EXTENSION[ext];
 }
 
-export function LiveToolCallRenderer({
-  agentId,
-  item,
-  theme,
-  layout,
-  timestamp,
-}: PluginTimelineItemProps<LiveToolCallPayload>) {
-  const revealPath = useRpc(revealPathRpc);
-  const cwd = useAgent(agentId, (agent) => agent.cwd);
-  const preferences = useEnhancerPreferences();
-  const tokens = useThemeTokens(theme.colors, preferences);
-  useSelectionActions(tokens, preferences.selectionActions);
-  usePointerGlow(preferences.pointerGlow);
-  const data = item.data;
-
-  const calloutData = useMemo((): ToolCalloutData => {
+/** What a tool card draws, read from the call's own payload. */
+export function buildToolCallout(data: LiveToolCallPayload): ToolCalloutData {
     const rawName = (data.name || "").toLowerCase();
     const detail = (data.detail && typeof data.detail === "object" ? data.detail : {}) as Record<
       string,
@@ -455,6 +447,9 @@ export function LiveToolCallRenderer({
           (output && typeof output === "object"
             ? extractContentText(output as Record<string, unknown>)
             : undefined);
+    // A harness message the host turned into a row (`plain_text`) carries its
+    // words in `text`, which none of the fields above reads.
+    const plainText = detailType === "plain_text" ? asString(detail.text) : undefined;
     const durationMs =
       typeof detail.durationMs === "number" ? detail.durationMs : extractEvalDuration(output);
     let toolKind: ToolCallKind = "bash";
@@ -566,7 +561,7 @@ export function LiveToolCallRenderer({
       // would draw the request and the reply a second time.
       code: toolKind === "github" ? undefined : code,
       diff,
-      output: toolKind === "github" || evalCells.length > 0 ? undefined : outputText,
+      output: toolKind === "github" || evalCells.length > 0 ? undefined : outputText || plainText,
       cells: evalCells.length > 0 ? evalCells : undefined,
       askOptions: askOptions.length > 0 ? askOptions : undefined,
       askAnswer: askAnswer.length > 0 ? askAnswer : undefined,
@@ -578,7 +573,45 @@ export function LiveToolCallRenderer({
       paseo,
       github,
     };
-  }, [data]);
+}
+
+/**
+ * Advisor notes, relayed IRC messages and late notices reach the timeline as
+ * tool rows. They read as cards, not as a tool's output.
+ */
+export function toolEnvelope(data: LiveToolCallPayload): SystemEnvelope | null {
+  const detail = data.detail;
+  if (detail?.type !== "plain_text" || typeof detail.text !== "string") return null;
+  if (data.name.toLowerCase() === "advisor") {
+    return parseAdvisorNote(asString(detail.label), detail.text);
+  }
+  return parseSystemEnvelope(detail.text);
+}
+
+/** Whether clean chat keeps this call because it is part of the conversation. */
+export function isConversationToolCall(data: LiveToolCallPayload): boolean {
+  const envelope = toolEnvelope(data);
+  return envelope
+    ? isConversationEnvelope(envelope)
+    : isConversationTool(data.name, buildToolCallout(data));
+}
+
+export function LiveToolCallRenderer({
+  agentId,
+  item,
+  theme,
+  layout,
+  timestamp,
+}: PluginTimelineItemProps<LiveToolCallPayload>) {
+  const revealPath = useRpc(revealPathRpc);
+  const cwd = useAgent(agentId, (agent) => agent.cwd);
+  const preferences = useEnhancerPreferences();
+  const tokens = useThemeTokens(theme.colors, preferences);
+  useSelectionActions(tokens, preferences.selectionActions);
+  usePointerGlow(preferences.pointerGlow);
+  const data = item.data;
+
+  const calloutData = useMemo(() => buildToolCallout(data), [data]);
 
   // The dock has no access to the job manager, so the timeline is its only
   // source: every job snapshot that passes through a card is republished, and
@@ -612,22 +645,38 @@ export function LiveToolCallRenderer({
     cwd,
   );
 
+  const envelope = useMemo(() => toolEnvelope(data), [data]);
+  const conversation = envelope
+    ? isConversationEnvelope(envelope)
+    : isConversationTool(data.name, calloutData);
+
+  // Clean chat keeps a call that is still running, so the reader can see what
+  // the agent is doing. Parallel calls show only the newest one.
+  const at = timestamp.getTime();
+  const itemKey = `tool:${data.callId ?? calloutData.title}:${at}`;
+  useEffect(() => {
+    noteToolActivity(agentId, itemKey, at);
+  }, [agentId, itemKey, at]);
+  const isCurrentTool = useIsCurrentTool(agentId, itemKey);
+  const running = useAgent(agentId, (agent) => agent.status === "running") === true;
+  const cleanChat = useCleanChat(agentId);
+
+  if (cleanChat && !conversation && !(running && isCurrentTool)) return null;
+
   return (
     <View {...hostFontEscape}>
-      <ToolCallout
-        data={calloutData}
-        tokens={tokens}
-        defaultExpanded={isExpanded}
-        onRevealPath={handleRevealPath}
-        imageFile={imageFile}
-      />
-      <TimelineTailHub
-        agentId={agentId}
-        tokens={tokens}
-        itemKey={`tool:${data.callId ?? calloutData.title}:${timestamp.getTime()}`}
-        at={timestamp.getTime()}
-        kind="tool"
-      />
+      {envelope ? (
+        <SystemCard envelope={envelope} tokens={tokens} />
+      ) : (
+        <ToolCallout
+          data={calloutData}
+          tokens={tokens}
+          defaultExpanded={isExpanded}
+          onRevealPath={handleRevealPath}
+          imageFile={imageFile}
+        />
+      )}
+      <TimelineTailHub agentId={agentId} tokens={tokens} itemKey={itemKey} at={at} kind="tool" />
     </View>
   );
 }
@@ -754,34 +803,34 @@ export function LiveAssistantRenderer({
   useSelectionActions(tokens, preferences.selectionActions);
   usePointerGlow(preferences.pointerGlow);
 
-  // Replacing the reply costs the host's footer, which the stream layout hangs
-  // off an `assistant_message` item that no longer exists. Rebuild it where the
-  // host puts it: under the newest message, once, not under every reply.
   const itemKey = `assistant:${timestamp.getTime()}`;
-  const isTail = useIsTimelineTail(itemKey);
 
   // Job results, IRC relays and reminders arrive as replies because the host
   // files any unclaimed `custom` message under this item kind. They are not
   // the model's words, so they are drawn as a card, not as prose.
   const envelope = useMemo(() => parseSystemEnvelope(item.data.text), [item.data.text]);
+  // Registers this agent's clean chat pill.
+  useCleanChat(agentId);
+
+  const at = timestamp.getTime();
+  useEffect(() => {
+    noteMessageActivity(agentId, at);
+  }, [agentId, at]);
 
   return (
     <View {...hostFontEscape}>
       {envelope ? (
         <SystemCard envelope={envelope} tokens={tokens} />
       ) : (
-        <MarkdownView text={item.data.text} tokens={tokens} variant={preferences.markdownVariant} />
+        <AssistantMessage text={item.data.text} at={timestamp} tokens={tokens}>
+          <MarkdownView
+            text={item.data.text}
+            tokens={tokens}
+            variant={preferences.markdownVariant}
+          />
+        </AssistantMessage>
       )}
-      {isTail && !envelope ? (
-        <AssistantFooter text={item.data.text} at={timestamp} tokens={tokens} />
-      ) : null}
-      <TimelineTailHub
-        agentId={agentId}
-        tokens={tokens}
-        itemKey={itemKey}
-        at={timestamp.getTime()}
-        kind="reply"
-      />
+      <TimelineTailHub agentId={agentId} tokens={tokens} itemKey={itemKey} at={at} kind="reply" />
     </View>
   );
 }
@@ -881,6 +930,13 @@ export function LiveUserMessageRenderer({
   // replay. A job result is not something the user said, so it never takes the
   // user bubble.
   const envelope = useMemo(() => parseSystemEnvelope(item.data.text), [item.data.text]);
+  // Registers this agent's clean chat pill.
+  useCleanChat(agentId);
+
+  const at = timestamp.getTime();
+  useEffect(() => {
+    noteMessageActivity(agentId, at);
+  }, [agentId, at]);
 
   return (
     <View {...surfaceProps(hostFontEscape, promptRowAnchor(item.data.messageId))}>
