@@ -17,7 +17,7 @@ paseo plugin install npm:@gringolito/curtain
 ```
 
 The manifest requires Paseo `>=0.9.0`, the first release that installs plugins from npm. Open
-**Settings → Plugins → Curtain** for the accent, fonts, frosted glass, and prompt bubble options.
+**Settings → Plugins → Curtain** for the accent, frosted glass, and prompt bubble options.
 
 ---
 
@@ -155,14 +155,13 @@ Devicon brand marks, and the file-manager link.
 | Setting                | Effect                                                             |
 | ---------------------- | ------------------------------------------------------------------ |
 | Accent colour          | Follow the Paseo theme, or pick Jade, Violet, Amber, or Rose.      |
-| Interface font         | Embedded Inter, or the system interface face.                      |
-| Code font              | All monospace text: Paseo's Code font, Iosevka, or a custom font.  |
 | Frosted glass          | Blur card surfaces, or paint them solid.                           |
 | Enhanced prompt bubble | Off hands prompts back to Paseo, whose bubble shows pasted images. |
 | Assistant markdown     | Off hands replies back to Paseo's own renderer, without the card.  |
 | Clean chat             | Hide tool calls, reasoning, checklists and notices (see below).    |
 
-All monospace text also follows Paseo's **Code size** (Settings → Appearance → Fonts).
+Text uses Paseo's own faces: the interface font, and the **Code font** and **Code size** from
+Settings → Appearance → Fonts for all monospace text.
 
 ---
 
@@ -275,8 +274,9 @@ timestamp, item}`, and plugin navigation offers only `openSettings`, `openSurfac
 10. **No CSS escape hatch.** React Native styles drop unknown keys, so `backdrop-filter` is
     impossible through the style API. Frosted glass is a hand-injected `<style>` rule matched by a
     data attribute.
-11. **No font registration.** Faces are embedded as data URIs in an injected `@font-face` rule, and
-    every surface needs a wrapper that escapes the host's own font cascade.
+11. **No font settings in the SDK.** Paseo's faces are read from the CSS variables it publishes
+    (`--paseo-ui-font`, `--fontFamily-mono`), and every surface needs a wrapper that escapes the
+    host's own font cascade so monospace text keeps the Code font.
 12. **A closed module allowlist, and no SVG renderer.** Plugin client code may import only
     `react`, `react/jsx-runtime`, `react-native`, `@tanstack/react-query`, `zod`,
     `@getpaseo/plugin`, `@getpaseo/plugin/client`, `@getpaseo/plugin/client/react-native`, and

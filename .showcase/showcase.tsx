@@ -9,7 +9,6 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { View } from "react-native";
 
-import { embedFonts } from "../client/components/embed-fonts";
 import { installFrostedGlass } from "../client/components/frosted";
 import { buildThemeTokens } from "../client/components/theme-tokens";
 import { ToolCallout } from "../client/components/tool-callouts";
@@ -27,7 +26,6 @@ import { SystemCard } from "../client/components/system-card";
 import { AssistantMessage } from "../client/components/assistant-message";
 import { MarkdownView } from "../client/components/markdown/markdown-view";
 import { parseSystemEnvelope } from "../client/system-envelope";
-import { installPointerGlow } from "../client/components/glow";
 import type { ToolCalloutData } from "../shared/contracts";
 
 const DARK = {
@@ -46,9 +44,6 @@ const DARK = {
 
 const PREFERENCES = {
   accent: "host" as const,
-  uiFont: "inter" as const,
-  codeFont: "code" as const,
-  customCodeFont: "",
   frostedGlass: true,
   enhancedUserBubble: true,
 };
@@ -818,9 +813,7 @@ function Showcase() {
   );
 }
 
-embedFonts();
 installFrostedGlass();
-installPointerGlow();
 
 console.log("showcase: bundle evaluated");
 const mount = document.getElementById("root");

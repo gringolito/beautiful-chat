@@ -15,70 +15,23 @@ export type PluginSurfaceColors = PluginTheme["colors"];
 export const radius = { card: 12, block: 8, chip: 5 } as const;
 
 /**
- * One family name per stack, never a comma-separated CSS list. On iOS and
- * Android `fontFamily` names a single family, and a list falls back to the
- * system face.
- * Fallbacks live in the `@font-face` `src` chain instead, so these names
- * always resolve to something.
+ * Paseo's own faces: its interface font, and the Code font from Settings →
+ * Appearance → Fonts. The host keeps both in CSS variables on web and desktop,
+ * so text tracks its settings live; the fallbacks are Paseo's default stacks.
+ * React Native Web passes `fontFamily` through as raw CSS, which is what makes
+ * a `var()` and a list valid here. Native has neither, so it gets the platform
+ * faces.
  */
-export const fontMono = "OMP Iosevka";
-
-/**
- * The ligature cut of Iosevka. When it is the chosen code font, only code
- * blocks and the diffs drawn through them use it; terminal output, inline code
- * and paths keep `fontMono`, because a shaped `->` or `=>` stops matching the
- * bytes it stands for, which is wrong for a log line.
- */
-export const fontCode = "OMP Iosevka Code";
-export const fontUi = "OMP Inter";
-
-/**
- * Paseo's own monospace font: Settings → Appearance → Fonts → Code font. The host
- * keeps its Unistyles theme in CSS variables on web and desktop, so this
- * tracks the setting live; the fallback is Paseo's default stack. React Native
- * Web passes `fontFamily` through as raw CSS, which is what makes a `var()` and
- * a list valid here. Native has neither, so it gets the platform monospace.
- */
-const hostMonoFont =
+export const fontUi =
+  Platform.OS === "web" ? "var(--paseo-ui-font, system-ui, sans-serif)" : "System";
+export const fontMono =
   Platform.OS === "web"
     ? "var(--fontFamily-mono, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace)"
     : Platform.select({ ios: "Menlo", default: "monospace" });
 
-/**
- * The chosen code font as two families: `code` for code blocks and diffs,
- * `mono` for every other monospace surface. They differ only for the Iosevka
- * ligature cut.
- */
-export function resolveCodeFonts(preferences: EnhancerPreferences): {
-  code: string;
-  mono: string;
-} {
-  switch (preferences.codeFont) {
-    case "code":
-      return { code: fontCode, mono: fontMono };
-    case "plain":
-      return { code: fontMono, mono: fontMono };
-    case "custom": {
-      // The same characters Paseo strips from its own font fields: anything
-      // that could close the declaration and start another.
-      const custom = preferences.customCodeFont.replace(/[<>{}();\r\n]/g, "").trim();
-      const family =
-        custom.length === 0
-          ? hostMonoFont
-          : Platform.OS === "web"
-            ? `${custom}, ${hostMonoFont}`
-            : custom;
-      return { code: family, mono: family };
-    }
-    case "host":
-      return { code: hostMonoFont, mono: hostMonoFont };
-  }
-}
-
 export interface ExtendedThemeTokens {
   isDark: boolean;
   fontMono: string;
-  fontCode: string;
   fontUi: string;
   /** Paseo's Code size, used by every monospace surface. */
   codeFontSize: number;
@@ -218,7 +171,6 @@ export function buildThemeTokens(
   preferences: EnhancerPreferences = DEFAULT_PREFERENCES,
   codeFontSize: number = DEFAULT_HOST_CODE_FONT_SIZE,
 ): ExtendedThemeTokens {
-  const codeFonts = resolveCodeFonts(preferences);
   const isDark = isDarkSurface(colors.surface0);
   const fg = colors.foreground;
   const accent = ACCENT_PRESETS[preferences.accent] ?? colors.accent;
@@ -230,9 +182,8 @@ export function buildThemeTokens(
 
   return {
     isDark,
-    fontMono: codeFonts.mono,
-    fontCode: codeFonts.code,
-    fontUi: preferences.uiFont === "system" ? "System" : fontUi,
+    fontMono,
+    fontUi,
     codeFontSize,
     codeLineHeight: Math.round(codeFontSize * 1.5),
 
