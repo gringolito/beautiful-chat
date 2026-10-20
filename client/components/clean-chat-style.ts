@@ -1,7 +1,7 @@
 import { getEnhancerPreferences, subscribeEnhancerPreferences } from "../preferences";
 import { findColorClasses } from "./host-notice";
 
-const STYLE_ELEMENT_ID = "beautiful-chat-clean-chat";
+const STYLE_ELEMENT_ID = "curtain-clean-chat";
 
 /**
  * Clean chat on the rows the plugin cannot replace. The host draws

@@ -213,7 +213,7 @@ function ChoiceRow<T extends string>({
 }
 
 /** Settings content mounted by Paseo under the selected host's Plugin settings. */
-export function BeautifulChatSettingsPage({ theme }: PluginSurfaceProps) {
+export function CurtainSettingsPage({ theme }: PluginSurfaceProps) {
   const preferences = useEnhancerPreferences();
   const tokens = useThemeTokens(theme.colors, preferences);
 
